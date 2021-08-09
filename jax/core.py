@@ -143,6 +143,9 @@ class JaxprEqn(NamedTuple):
   def __repr__(self): return str(pp_eqn(self)).rstrip()
 
 def new_jaxpr_eqn(invars, outvars, primitive, params, source_info=None):
+  if primitive.call_primitive and 'donated_invars' in params:
+    call_jaxpr, _ = extract_call_jaxpr(primitive, params)
+    assert len(call_jaxpr.invars) == len(params['donated_invars'])
   return JaxprEqn(invars, outvars, primitive, params, source_info)
 
 
@@ -194,19 +197,6 @@ def gensym(jaxprs: Optional[Sequence[Jaxpr]] = None,
     start = 1 + max((v.count for v in all_vars), default=-1)
   counter = it.count(start=start)
   return lambda aval: Var(next(counter), suffix, aval)
-
-# In a jaxpr, `dropvar` can appear in place of a bound variable to indicate that
-# the assignment is dropped, i.e. that an expression's output value will never
-# be read. In that sense, `dropvar` is not a variable, but it is convenient to
-# treat it as a special case of one. Its `aval` is similarly inexact.
-class DropVar(Var):
-  count = -1
-  suffix = ''
-  def __init__(self): pass
-  @property
-  def aval(self): return abstract_unit
-  def __repr__(self): return '_'
-dropvar = DropVar()
 
 class Literal:
   __slots__ = ["val", "hash"]
@@ -347,7 +337,7 @@ def eval_jaxpr(jaxpr: Jaxpr, consts, *args):
     env[v] = val
 
   env: Dict[Var, Any] = {}
-  write(unitvar, unit)
+  # write(unitvar, unit)
   map(write, jaxpr.constvars, consts)
   map(write, jaxpr.invars, args)
   for eqn in jaxpr.eqns:
@@ -887,18 +877,18 @@ class Bot(AbstractValue): pass
 
 bot = Bot()
 
-class AbstractUnit(AbstractValue):
-  # TODO(jakevdp): make it possible to set zero buffers
-  # _num_buffers = 0
-  def at_least_vspace(self): return self
-  def join(self, other):
-    if config.jax_enable_checks:
-      assert other is abstract_unit, other
-    return self
-  def _eq(self, self_traced, other): return get_aval(other) is self
-  def str_short(self): return '*'
+# class AbstractUnit(AbstractValue):
+#   # TODO(jakevdp): make it possible to set zero buffers
+#   # _num_buffers = 0
+#   def at_least_vspace(self): return self
+#   def join(self, other):
+#     if config.jax_enable_checks:
+#       assert other is abstract_unit, other
+#     return self
+#   def _eq(self, self_traced, other): return get_aval(other) is self
+#   def str_short(self): return '*'
 
-abstract_unit = AbstractUnit()
+# abstract_unit = AbstractUnit()
 
 def lattice_join(x: Optional[AbstractValue],
                  y: Optional[AbstractValue]) -> AbstractValue:
@@ -950,21 +940,21 @@ def get_aval(x):
 pytype_aval_mappings: Dict[type, Callable[[Any], AbstractValue]] = {}
 
 
-class Unit:
-  def __repr__(self): return '*'
-unit = Unit()
-literalable_types.add(Unit)
+# class Unit:
+#   def __repr__(self): return '*'
+# unit = Unit()
+# literalable_types.add(Unit)
 
-class UnitVar(Var):
-  count = -1
-  suffix = ''
-  def __init__(self): pass
-  @property
-  def aval(self): return abstract_unit
-  def __repr__(self): return '*'
-unitvar = UnitVar()
+# class UnitVar(Var):
+#   count = -1
+#   suffix = ''
+#   def __init__(self): pass
+#   @property
+#   def aval(self): return abstract_unit
+#   def __repr__(self): return '*'
+# unitvar = UnitVar()
 
-pytype_aval_mappings[Unit] = lambda _: abstract_unit
+# pytype_aval_mappings[Unit] = lambda _: abstract_unit
 
 def concretization_function_error(fun, suggest_astype=False):
   fname = getattr(fun, "__name__", fun)
@@ -1217,7 +1207,7 @@ def raise_to_shaped(aval: AbstractValue, weak_type=None):
   raise TypeError(type(aval))
 
 raise_to_shaped_mappings : Dict[type, Callable] = {
-  AbstractUnit: lambda aval, _: aval,
+  # AbstractUnit: lambda aval, _: aval,
   AbstractToken: lambda aval, _: aval,
   Bot: lambda aval, _: aval,
   UnshapedArray: lambda aval, _: aval,
@@ -1637,8 +1627,8 @@ def unmapped_aval(size: int, axis: int, aval: AbstractValue) -> AbstractValue:
   else:
     raise TypeError(f"no unmapping handler for {aval} of type {type(aval)}")
 
-def _map_unit(size: int, axis: int, aval: AbstractUnit) -> AbstractUnit:
-  return aval
+# def _map_unit(size: int, axis: int, aval: AbstractUnit) -> AbstractUnit:
+#   return aval
 
 def _map_shaped_array(size: int, axis: int, aval: ShapedArray) -> ShapedArray:
   assert aval.shape[axis] == size
@@ -1649,7 +1639,7 @@ def _unmap_shaped_array(size: int, axis: int, aval: ShapedArray) -> ShapedArray:
 
 AvalMapHandlerPair = Tuple[Callable, Callable]
 aval_mapping_handlers: Dict[Type, AvalMapHandlerPair] = {
-    AbstractUnit: (_map_unit, _map_unit),
+    # AbstractUnit: (_map_unit, _map_unit),
     ShapedArray:   (_map_shaped_array, _unmap_shaped_array),
     ConcreteArray: (_map_shaped_array, _unmap_shaped_array),
 }
@@ -1763,8 +1753,7 @@ class DuplicateAxisNameError(Exception):
 
 def subst_axis_names_var(v: Var, subst: AxisSubst, var_map: Dict[Var, Var]) -> Var:
   # Var identity is load-bearing, so we can't have duplicates!
-  if v is unitvar: return v
-  if v is dropvar: return v
+  # if v is unitvar: return v
   assert v not in var_map
   if not hasattr(v.aval, 'named_shape'):
     var_map[v] = v
@@ -1885,15 +1874,14 @@ def _check_jaxpr(jaxpr: Jaxpr, in_avals: Sequence[AbstractValue]):
 
   def write(v: Var, a: AbstractValue) -> None:
     typecheck_assert(v not in env, f"Variable '{v}' already bound")
-    if v is not dropvar:
-      typecheck_assert(typecompat(v.aval, a),
-                       f"Variable '{v}' inconsistently typed as {a}, "
-                       f"bound as {v.aval}")
-      env[v] = a
+    typecheck_assert(typecompat(v.aval, a),
+                     f"Variable '{v}' inconsistently typed as {a}, "
+                     f"bound as {v.aval}")
+    env[v] = a
 
   env : Dict[Var, AbstractValue] = {}
 
-  write(unitvar, abstract_unit)
+  # write(unitvar, abstract_unit)
   map(write, jaxpr.constvars, [v.aval for v in jaxpr.constvars])
   map(write, jaxpr.invars, in_avals)
 
