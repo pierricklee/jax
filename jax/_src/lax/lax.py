@@ -5563,15 +5563,6 @@ def _compute_argminmax(value_comparator, get_identity,
                axes)
   return res[1]
 
-def _argminmax_gpu_translation_rule(op, a, *, axes, index_dtype):
-  axis, = axes
-  idxs = tie_in(a, broadcasted_iota(index_dtype, a.shape, axis))
-  maxval = np.array(dtypes.iinfo(index_dtype).max, dtype=index_dtype)
-  maxval = broadcast(tie_in(a, maxval), a.shape)
-  maxvals = expand_dims(op(a, (axis,)), (axis,))
-  mask_idxs = select(eq(a, maxvals) | ne(a, a), idxs, maxval)
-  return _reduce_min(mask_idxs, (axis,))
-
 _argmin_translation_rule = xla.lower_fun(
   partial(_compute_argminmax, lt, _get_min_identity),
   multiple_results=False)
@@ -5585,18 +5576,12 @@ argmin_p = standard_primitive(_argminmax_shape_rule, _argminmax_dtype_rule,
                               weak_type_rule=_strip_weak_type)
 batching.defreducer(argmin_p)
 ad.defjvp_zero(argmin_p)
-xla.backend_specific_translations['gpu'][argmin_p] = xla.lower_fun(
-  partial(_argminmax_gpu_translation_rule, _reduce_min),
-  multiple_results=False)
 
 argmax_p = standard_primitive(_argminmax_shape_rule, _argminmax_dtype_rule,
                               'argmax', _argmax_translation_rule,
                               weak_type_rule=_strip_weak_type)
 batching.defreducer(argmax_p)
 ad.defjvp_zero(argmax_p)
-xla.backend_specific_translations['gpu'][argmax_p] = xla.lower_fun(
-  partial(_argminmax_gpu_translation_rule, _reduce_max),
-  multiple_results=False)
 
 
 def _reduce_logical_shape_rule(operand, *, axes):
