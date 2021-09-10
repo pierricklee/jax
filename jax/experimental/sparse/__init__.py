@@ -156,7 +156,8 @@ implemented in JAX. Notice that the following implementation has no reference to
     ...
     >>> def fit_logreg(X, y):
     ...   params = jnp.zeros(X.shape[1] + 1)
-    ...   result = optimize.minimize(jax.partial(loss, X=X, y=y), x0=params, method='BFGS')
+    ...   result = optimize.minimize(functools.partial(loss, X=X, y=y),
+                                     x0=params, method='BFGS')
     ...   return result.x
 
     >>> X, y = make_classification(n_classes=2, random_state=1701)
