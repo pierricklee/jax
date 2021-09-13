@@ -344,9 +344,9 @@ def backend_compile(backend, built_c, options):
   return backend.compile(built_c, compile_options=options)
 
 def _execute_compiled_primitive(prim, compiled, result_handler, *args):
-  device, = compiled.local_devices()
-  input_bufs = list(it.chain.from_iterable(device_put(x, device) for x in args if x is not token))
-  out_bufs = compiled.execute(input_bufs)
+  device, = compiled.local_devices()                                                                    # device = CPU
+  input_bufs = list(it.chain.from_iterable(device_put(x, device) for x in args if x is not token))      # put array into device
+  out_bufs = compiled.execute(input_bufs)                                                               # execute compiled primitive
   if FLAGS.jax_debug_nans: check_nans(prim, out_bufs)
   return result_handler(*out_bufs)
 

@@ -185,7 +185,7 @@ def device_count(backend: str = None):
 
   Args:
     backend: This is an experimental feature and the API is likely to change.
-      Optional, a string representing the xla backend: ``'cpu'``, ``'gpu'``, or
+      Optional, a string representing the xla backend: ``'cpu'``, ``'gpu'``, ``'ipu'`` or
       ``'tpu'``.
 
   Returns:
@@ -208,12 +208,12 @@ def devices(backend: str = None):
   :meth:`Device.host_id` to the value returned by :py:func:`jax.host_id`.
 
   If ``backend`` is ``None``, returns all the devices from the default backend.
-  The default backend is generally ``'gpu'`` or ``'tpu'`` if available,
+  The default backend is generally ``'gpu'``, ``'ipu'`` or ``'tpu'`` if available,
   otherwise ``'cpu'``.
 
   Args:
     backend: This is an experimental feature and the API is likely to change.
-      Optional, a string representing the xla backend: ``'cpu'``, ``'gpu'``, or
+      Optional, a string representing the xla backend: ``'cpu'``, ``'gpu'``, ``'ipu'`` or
       ``'tpu'``.
 
   Returns:
@@ -231,7 +231,7 @@ def local_devices(host_id: int = None, backend: str = None):
     host_id: the integer ID of the host. Host IDs can be retrieved via
       :py:func:`jax.host_ids`.
     backend: This is an experimental feature and the API is likely to change.
-      Optional, a string representing the xla backend: ``'cpu'``, ``'gpu'``, or
+      Optional, a string representing the xla backend: ``'cpu'``, ``'gpu'``, ``'ipu'`` or
       ``'tpu'``.
 
   Returns:
@@ -252,7 +252,7 @@ def host_id(backend: str = None):
 
   Args:
     backend: This is an experimental feature and the API is likely to change.
-      Optional, a string representing the xla backend: ``'cpu'``, ``'gpu'``, or
+      Optional, a string representing the xla backend: ``'cpu'``, ``'gpu'``, ``'ipu'`` or
       ``'tpu'``.
 
   Returns:
