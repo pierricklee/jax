@@ -1,6 +1,7 @@
 #!/bin/bash
-set -xev
-if [ ! -d "/dist" ]
+set -xev    # set shell mode by showing next line, if not return 0 then break...
+# -d means check if dir exists
+if [ ! -d "/dist" ]   
 then
   echo "/dist must be mounted to produce output"
   exit 1
@@ -14,7 +15,7 @@ eval "$(pyenv init -)"
 PY_VERSION="$1"
 echo "Python version $PY_VERSION"
 
-git clone https://github.com/google/jax /build/jax
+#git clone https://github.com/google/jax /build/jax
 cd /build/jax/build
 
 mkdir /build/tmp
@@ -22,7 +23,7 @@ mkdir /build/root
 export TMPDIR=/build/tmp
 
 usage() {
-  echo "usage: ${0##*/} [py2|py3] [cuda-included|cuda|nocuda]"
+  echo "usage: ${0##*/} [py2|py3] [cuda-included|cuda|nocuda|ipu]"
   exit 1
 }
 
@@ -53,6 +54,10 @@ case $2 in
     ;;
   nocuda)
     python build.py --bazel_startup_options="--output_user_root=/build/root"
+    PLAT_NAME="manylinux2010_x86_64"
+    ;;
+  ipu)
+    python build.py --enable_poplar --bazel_startup_options="--output_user_root=/build/root"
     PLAT_NAME="manylinux2010_x86_64"
     ;;
   *)

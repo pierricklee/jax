@@ -181,6 +181,10 @@ common --experimental_repo_remote_exec
 build --repo_env PYTHON_BIN_PATH="{python_bin_path}"
 build --python_path="{python_bin_path}"
 build --repo_env TF_NEED_CUDA="{tf_need_cuda}"
+build --repo_env TF_NEED_POPLAR="{tf_need_poplar}"
+# build --enable_poplar
+build --define=xla_python_enable_ipu=true
+build --define=enable_ipu=true
 build --action_env TF_CUDA_COMPUTE_CAPABILITIES="{cuda_compute_capabilities}"
 build --distinct_host_configuration=false
 build --copt=-Wno-sign-compare
@@ -303,6 +307,10 @@ def main():
       parser,
       "enable_cuda",
       help_str="Should we build with CUDA enabled? Requires CUDA and CuDNN.")
+  add_boolean_argument(
+      parser,
+      "enable_poplar",
+      help_str="Should we build with poplar enabled? Requires POPLAR and POPART.")
   parser.add_argument(
       "--cuda_path",
       default=None,
@@ -345,6 +353,7 @@ def main():
   cuda_toolkit_path = args.cuda_path
   cudnn_install_path = args.cudnn_path
   print("CUDA enabled: {}".format("yes" if args.enable_cuda else "no"))
+  print("POPLAR enabled: {}".format("yes" if args.enable_poplar else "no"))
   if args.enable_cuda:
     if cuda_toolkit_path:
       print("CUDA toolkit path: {}".format(cuda_toolkit_path))
@@ -354,6 +363,7 @@ def main():
   write_bazelrc(
       python_bin_path=python_bin_path,
       tf_need_cuda=1 if args.enable_cuda else 0,
+      tf_need_poplar=1 if args.enable_poplar else 0,
       cuda_toolkit_path=cuda_toolkit_path,
       cudnn_install_path=cudnn_install_path,
       cuda_compute_capabilities=args.cuda_compute_capabilities)
@@ -368,10 +378,16 @@ def main():
   if args.enable_cuda:
     config_args += ["--config=cuda"]
     config_args += ["--define=xla_python_enable_gpu=true"]
+  # if args.enable_poplar:
+    # config_args += ["--config=poplar"]
+  config_args += ["--define=xla_python_enable_ipu=true"]
+  config_args += ["--define=enable_ipu=true"]
   command = ([bazel_path] + args.bazel_startup_options +
     ["run", "--verbose_failures=true"] + config_args +
     [":install_xla_in_source_tree", os.getcwd()])
+  print("\n\ncommand:\n")
   print(" ".join(command))
+  print("\n\ncommand_end\n")
   shell(command)
   shell([bazel_path, "shutdown"])
 

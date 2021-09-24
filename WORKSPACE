@@ -26,13 +26,29 @@ http_archive(
 # b) get the sha256 hash of the commit by running:
 #    curl -L https://github.com/tensorflow/tensorflow/archive/<git hash>.tar.gz | sha256sum
 #    and update the sha256 with the result.
-http_archive(
-    name = "org_tensorflow",
-    sha256 = "c868259c92a669743f77c6cdc450a1b92bf01ac9f814825264e6adebd0acdd6e",
-    strip_prefix = "tensorflow-4ace926c663be8ecd13505cd4316b7b3380008af",
-    urls = [
-        "https://github.com/tensorflow/tensorflow/archive/4ace926c663be8ecd13505cd4316b7b3380008af.tar.gz",
-    ],
+# http_archive(
+#     name = "org_tensorflow",
+#     sha256 = "c868259c92a669743f77c6cdc450a1b92bf01ac9f814825264e6adebd0acdd6e",
+#     strip_prefix = "tensorflow-4ace926c663be8ecd13505cd4316b7b3380008af",
+#     urls = [
+#         "https://github.com/tensorflow/tensorflow/archive/4ace926c663be8ecd13505cd4316b7b3380008af.tar.gz",
+#     ],
+# )
+
+#
+#http_archive(
+#    name = "org_tensorflow",
+#    sha256 = "a398e27cba4a2a918010f2cb04620365687a7aa0cbde2432fa3ec77e7dc3868f",
+#    strip_prefix = "tensorflow-a0154df1bebfd8152af39184de3f07348d319d79",
+#    urls = [
+#        "https://github.com/pierricklee/tensorflow/archive/a0154df1bebfd8152af39184de3f07348d319d79.tar.gz",
+#    ],
+#)
+
+# For development, one can use a local TF repository instead.
+local_repository(
+   name = "org_tensorflow",
+   path = "/home/zhli/tensorflow",
 )
 
 # For development, one can use a local TF repository instead.
